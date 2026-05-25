@@ -1,0 +1,20 @@
+#cloud-config
+hostname: qemu-hello
+network:
+  config: disabled
+write_files:
+  - path: /usr/local/bin/hello-world
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env sh
+      printf 'Hello from qemu-playground inside Ubuntu\n'
+runcmd:
+  - [ sh, -c, '/usr/local/bin/hello-world | tee /dev/ttyS0' ]
+final_message: "cloud-init finished the qemu-playground hello-world demo"
+power_state:
+  delay: now
+  mode: poweroff
+  message: qemu-playground hello-world demo finished
+  timeout: 30
+  condition: true
