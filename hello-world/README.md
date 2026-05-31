@@ -35,12 +35,12 @@ The generated artifacts are written to `artifacts/`:
 - `edk2-aarch64-vars.fd`
   - The per-run writable EDK2 variable store used by the ARM64 UEFI firmware.
 - `serial.log`
-  - The guest serial console output streamed by `run.sh`.
+  - The guest serial console output written by QEMU.
 
 
 ## Instructions
 
-Follow these instructions to build and run the demo.
+Follow these instructions to build and run the demo in a tutorial style.
 
 1. Pre-requisite: macOS, QEMU
    - I installed QEMU with Homebrew with the following command.
@@ -53,16 +53,50 @@ Follow these instructions to build and run the demo.
      ```
    - The first run downloads the Ubuntu cloud image. Later runs reuse the cached base image but recreate the writable
      overlay and seed ISO.
-3. Run the VM
+3. Open a second terminal for logs
+   - In terminal 2, start tailing the serial log.
    - ```shell
-     ./run.sh
+     tail -f artifacts/serial.log
      ```
-   - It should eventually output the following message from the guest serial console.
+4. Run the VM in terminal 1
+   - ```shell
+     ./scripts/start-qemu.sh
+     ```
+   - QEMU runs in the foreground here. It exits on its own when the guest powers off.
+5. Watch for the hello-world output in terminal 2
    - ```text
-     Hello from qemu-playground inside Ubuntu
+     qemu-playground says hello!
      ```
-   - The guest shuts itself down after cloud-init finishes.
-   - `RUN_TIMEOUT_SECONDS` can be set to change the default 180 second watchdog.
+   - The guest shuts itself down after cloud-init finishes, then `start-qemu.sh` exits.
+6. Verify host-shared output file
+   - ```shell
+     cat guest-share/hello-output.txt
+     ```
+7. Stop the log tail
+   - Press `Ctrl+C` in terminal 2.
+
+### If you need to stop QEMU manually
+
+The simplest way is `Ctrl+C` in terminal 1 where QEMU is running. If you want to stop it from
+another terminal, find its PID and kill it:
+
+- Find the QEMU process:
+  - ```shell
+    pgrep -af qemu-system-aarch64
+    ```
+- Kill it by PID (substitute the number from above):
+  - ```shell
+    kill <pid>
+    ```
+- If it ignores that, force kill:
+  - ```shell
+    kill -9 <pid>
+    ```
+
+### Convenience wrapper
+
+`./run.sh` is still available as a convenience wrapper (`build.sh` + `scripts/start-qemu.sh`), but the steps above are the
+preferred tutorial flow.
 
 
 ## Wiring options
