@@ -10,27 +10,30 @@ This is a "hello world"-style demo of QEMU. I've struggled to find and understan
 - A VM base image
   - We download one of [Ubuntu's VM images][ubuntu-cloud-images] and use it as a base. This image is a file in QEMU's [qcow][qcow] file format.
 - A "hello world" program
-  - This program is embedded as a shell heredoc in the `user-data` YAML file. This is obnoxious. I can't figure out a sane way to just express a "hello.sh" script in a file, and wire it into the VM without much fuss. We are resorting to this cloud-init, YAML-bootstrapping dance. There has to be more fundamental ways...
+  - This program is a normal shell script in `guest-share/`. QEMU exposes that directory to the guest, and cloud-init
+    mounts it and runs the script.
 - An overlay image
   - In this image, we've overlaid the base one to wire in the cloud init yaml??
 
 The `build.sh` script creates a fresh qcow2 overlay for each run and uses macOS's built-in `hdiutil` tool to create the seed ISO. The seed ISO is where the "hello world" behavior is wired in. It contains:
 
 - `user-data`
-  - The cloud-init instructions. It writes `/usr/local/bin/hello-world`, runs it, mirrors its output to `/dev/ttyS0`,
-    and powers off the guest.
+  - The cloud-init instructions. It mounts the QEMU host share, runs `hello-world.sh`, mirrors its output to
+    `/dev/console` and `guest-share/hello-output.txt`, and powers off the guest.
 - `meta-data`
   - The cloud-init instance identity. This demo uses a static `instance-id` because the overlay is recreated before each
     run. (TODO I don't get this. Do I need this?)
 
 The generated artifacts are written to `artifacts/`:
 
-- `noble-server-cloudimg-amd64.qcow2`
+- `resolute-server-cloudimg-arm64.qcow2`
   - The cached Ubuntu cloud image downloaded from Ubuntu.
 - `hello.qcow2`
   - The per-run writable overlay that QEMU boots.
 - `seed.iso`
   - The NoCloud seed ISO with the `cidata` volume label.
+- `edk2-aarch64-vars.fd`
+  - The per-run writable EDK2 variable store used by the ARM64 UEFI firmware.
 - `serial.log`
   - The guest serial console output streamed by `run.sh`.
 
@@ -59,17 +62,16 @@ Follow these instructions to build and run the demo.
      Hello from qemu-playground inside Ubuntu
      ```
    - The guest shuts itself down after cloud-init finishes.
+   - `RUN_TIMEOUT_SECONDS` can be set to change the default 180 second watchdog.
 
 
 ## Wiring options
 
-This demo uses cloud-init `write_files` plus `runcmd` because it keeps the Hello World program visible in the guest as a
-normal executable while avoiding a custom image build.
+This demo uses QEMU's 9p filesystem sharing plus cloud-init `runcmd`. That keeps the Hello World program as a normal
+host-side shell script while still letting the guest execute it.
 
 Other reasonable options:
 
-- Put a one-liner directly in `bootcmd` or `runcmd`
-  - This is the smallest option, but there is no standalone program to inspect inside the guest.
 - Attach another ISO or virtio disk with the program on it
   - This is useful when the payload should be kept separate from cloud-init. Cloud-init can mount the disk and run the
     program.

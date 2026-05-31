@@ -1,16 +1,10 @@
 #cloud-config
 hostname: qemu-hello
-network:
-  config: disabled
-write_files:
-  - path: /usr/local/bin/hello-world
-    permissions: '0755'
-    owner: root:root
-    content: |
-      #!/usr/bin/env sh
-      printf 'Hello from qemu-playground inside Ubuntu\n'
+bootcmd:
+  - [ mkdir, -p, /mnt/qemu-host ]
+  - [ mount, -t, 9p, -o, 'trans=virtio,version=9p2000.L', qemu_host, /mnt/qemu-host ]
 runcmd:
-  - [ sh, -c, '/usr/local/bin/hello-world | tee /dev/ttyS0' ]
+  - [ sh, -c, '/mnt/qemu-host/hello-world.sh | tee /dev/console /mnt/qemu-host/hello-output.txt' ]
 final_message: "cloud-init finished the qemu-playground hello-world demo"
 power_state:
   delay: now
