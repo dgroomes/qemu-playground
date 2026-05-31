@@ -12,10 +12,13 @@ This is a "hello world"-style demo of QEMU. I've struggled to find and understan
 - A "hello world" program
   - This program is a normal shell script in `guest-share/`. QEMU exposes that directory to the guest, and cloud-init
     mounts it and runs the script.
-- An overlay image
-  - In this image, we've overlaid the base one to wire in the cloud init yaml??
 
-The `build.sh` script creates a fresh qcow2 overlay for each run and uses macOS's built-in `hdiutil` tool to create the seed ISO. The seed ISO is where the "hello world" behavior is wired in. It contains:
+We boot the downloaded Ubuntu image directly and pass QEMU's `-snapshot` flag, which sends all guest disk writes to a
+throwaway temp file. The base image stays pristine and every run starts fresh, so there is no separate overlay image to
+manage.
+
+The `build.sh` script downloads the base image and uses macOS's built-in `hdiutil` tool to create the seed ISO. The seed
+ISO is where the "hello world" behavior is wired in. It contains:
 
 - `user-data`
   - The cloud-init instructions. It mounts the QEMU host share, runs `hello-world.sh`, mirrors its output to
@@ -27,9 +30,7 @@ The `build.sh` script creates a fresh qcow2 overlay for each run and uses macOS'
 The generated artifacts are written to `artifacts/`:
 
 - `resolute-server-cloudimg-arm64.qcow2`
-  - The cached Ubuntu cloud image downloaded from Ubuntu.
-- `hello.qcow2`
-  - The per-run writable overlay that QEMU boots.
+  - The cached Ubuntu cloud image downloaded from Ubuntu. QEMU boots this directly with `-snapshot`.
 - `seed.iso`
   - The NoCloud seed ISO with the `cidata` volume label.
 - `edk2-aarch64-vars.fd`
@@ -60,11 +61,11 @@ Follow these instructions to build and run the demo in a tutorial style.
      ```
 4. Run the VM in terminal 1
    - ```shell
-     ./scripts/start-qemu.sh
+     ./start-qemu.sh
      ```
    - QEMU runs in the foreground here. It exits on its own when the guest powers off.
 5. Watch for the hello-world output in terminal 2
-   - ```text
+   -      ```text
      qemu-playground says hello!
      ```
    - The guest shuts itself down after cloud-init finishes, then `start-qemu.sh` exits.
@@ -74,29 +75,6 @@ Follow these instructions to build and run the demo in a tutorial style.
      ```
 7. Stop the log tail
    - Press `Ctrl+C` in terminal 2.
-
-### If you need to stop QEMU manually
-
-The simplest way is `Ctrl+C` in terminal 1 where QEMU is running. If you want to stop it from
-another terminal, find its PID and kill it:
-
-- Find the QEMU process:
-  - ```shell
-    pgrep -af qemu-system-aarch64
-    ```
-- Kill it by PID (substitute the number from above):
-  - ```shell
-    kill <pid>
-    ```
-- If it ignores that, force kill:
-  - ```shell
-    kill -9 <pid>
-    ```
-
-### Convenience wrapper
-
-`./run.sh` is still available as a convenience wrapper (`build.sh` + `scripts/start-qemu.sh`), but the steps above are the
-preferred tutorial flow.
 
 
 ## Wiring options

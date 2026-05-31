@@ -1,20 +1,45 @@
 #!/usr/bin/env bash
-# Start the hello-world guest in the foreground.
+# Boot the Ubuntu base image in the foreground and run the hello-world demo.
 
 set -euo pipefail
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-source "${script_dir}/common.sh"
+artifacts_dir="${script_dir}/artifacts"
+guest_share_dir="${script_dir}/guest-share"
 
-require_command qemu-system-aarch64
+base_image="${artifacts_dir}/resolute-server-cloudimg-arm64.qcow2"
+seed_iso="${artifacts_dir}/seed.iso"
+serial_log="${artifacts_dir}/serial.log"
+efi_vars="${artifacts_dir}/edk2-aarch64-vars.fd"
 
-efi_code="$(find_qemu_data_file edk2-aarch64-code.fd)"
-efi_vars_template="$(find_qemu_data_file edk2-arm-vars.fd)"
+if ! command -v qemu-system-aarch64 >/dev/null 2>&1; then
+    printf 'error: required command not found: qemu-system-aarch64\n' >&2
+    exit 1
+fi
 
-if [[ ! -f "${disk_image}" || ! -f "${seed_iso}" ]]; then
+if [[ ! -f "${base_image}" || ! -f "${seed_iso}" ]]; then
     printf 'error: build artifacts are missing. Run ./build.sh first.\n' >&2
     exit 1
 fi
+
+# Locate the EDK2 UEFI firmware files that ship with QEMU/Homebrew.
+find_qemu_data_file() {
+    local file_name="$1"
+    local qemu_data_dir
+
+    while IFS= read -r qemu_data_dir; do
+        if [[ -f "${qemu_data_dir}/${file_name}" ]]; then
+            printf '%s\n' "${qemu_data_dir}/${file_name}"
+            return 0
+        fi
+    done < <(qemu-system-aarch64 -L help)
+
+    printf 'error: could not find QEMU data file: %s\n' "${file_name}" >&2
+    exit 1
+}
+
+efi_code="$(find_qemu_data_file edk2-aarch64-code.fd)"
+efi_vars_template="$(find_qemu_data_file edk2-arm-vars.fd)"
 
 mkdir -p "${artifacts_dir}"
 rm -f "${serial_log}" "${efi_vars}"
@@ -52,8 +77,12 @@ qemu_args=(
     # We copy QEMU's template on every run so the demo starts from a fresh firmware state.
     -drive "if=pflash,format=raw,file=${efi_vars}"
 
-    # Attach the Ubuntu qcow2 overlay as a virtio block device. The overlay is writable; the base image stays cached.
-    -drive "file=${disk_image},format=qcow2,if=virtio"
+    # Boot the downloaded Ubuntu cloud image directly as a virtio block device.
+    -drive "file=${base_image},format=qcow2,if=virtio"
+
+    # Send all guest disk writes to a throwaway temp file instead of the image. The base image stays
+    # pristine and every run starts fresh, so we don't need a separate overlay file.
+    -snapshot
 
     # Attach the cloud-init NoCloud seed ISO. The guest sees this as a CD-ROM labeled cidata.
     # That seed tells the guest how to mount the host share, run the demo script, and power off.
@@ -82,5 +111,5 @@ qemu_args=(
 )
 
 # Run QEMU in the foreground. It exits on its own when the guest powers off.
-# To stop it early, kill it from another terminal (see README).
+# To stop it early, press Ctrl+C.
 exec qemu-system-aarch64 "${qemu_args[@]}"
