@@ -42,8 +42,10 @@ efi_code="$(find_qemu_data_file edk2-aarch64-code.fd)"
 efi_vars_template="$(find_qemu_data_file edk2-arm-vars.fd)"
 
 mkdir -p "${artifacts_dir}"
-rm -f "${serial_log}" "${efi_vars}"
+# Truncate the serial log in place (do not unlink it) so a `tail -f` started in another
+# terminal keeps following the same file across runs.
 : > "${serial_log}"
+rm -f "${efi_vars}"
 cp "${efi_vars_template}" "${efi_vars}"
 
 printf 'Starting QEMU. Serial log: %s\n' "${serial_log}"

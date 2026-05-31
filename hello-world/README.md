@@ -55,9 +55,10 @@ Follow these instructions to build and run the demo in a tutorial style.
    - The first run downloads the Ubuntu cloud image. Later runs reuse the cached base image but recreate the writable
      overlay and seed ISO.
 3. Open a second terminal for logs
-   - In terminal 2, start tailing the serial log.
+   - In terminal 2, start tailing the serial log. `-F` (capital) waits for the file to appear and keeps following it
+     even when a new run recreates it.
    - ```shell
-     tail -f artifacts/serial.log
+     tail -F artifacts/serial.log
      ```
 4. Run the VM in terminal 1
    - ```shell
