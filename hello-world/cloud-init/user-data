@@ -1,14 +1,13 @@
 #cloud-config
 hostname: qemu-hello
+# Everything runs in bootcmd, which executes in cloud-init's early local stage. The later runcmd
+# stage waits on network-online.target and the rest of the boot pipeline, which adds ~8s we don't
+# need for this offline hello-world. Running here, then powering off immediately, is much faster.
 bootcmd:
   - [ mkdir, -p, /mnt/qemu-host ]
   - [ mount, -t, 9p, -o, 'trans=virtio,version=9p2000.L', qemu_host, /mnt/qemu-host ]
-runcmd:
   - [ sh, -c, '/mnt/qemu-host/hello-world.sh | tee /dev/console /mnt/qemu-host/hello-output.txt' ]
-final_message: "cloud-init finished the qemu-playground hello-world demo"
-power_state:
-  delay: now
-  mode: poweroff
-  message: qemu-playground hello-world demo finished
-  timeout: 30
-  condition: true
+  # This is a throwaway VM, so skip the multi-second graceful systemd shutdown and power off
+  # immediately with the kernel sysrq trigger. sync first so the hello-output.txt write reaches
+  # the host 9p share before the power is cut.
+  - [ sh, -c, 'sync; echo 1 > /proc/sys/kernel/sysrq; echo o > /proc/sysrq-trigger' ]

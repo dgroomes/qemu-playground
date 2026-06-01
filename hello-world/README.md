@@ -80,8 +80,10 @@ Follow these instructions to build and run the demo in a tutorial style.
 
 ## Wiring options
 
-This demo uses QEMU's 9p filesystem sharing plus cloud-init `runcmd`. That keeps the Hello World program as a normal
-host-side shell script while still letting the guest execute it.
+This demo uses QEMU's 9p filesystem sharing plus cloud-init `bootcmd`. That keeps the Hello World program as a normal
+host-side shell script while still letting the guest execute it. We use `bootcmd` (cloud-init's early local stage)
+rather than `runcmd` because `runcmd` runs late in boot, after `network-online.target`, which adds several seconds we
+don't need for an offline demo.
 
 Other reasonable options:
 
