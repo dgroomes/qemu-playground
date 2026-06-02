@@ -59,8 +59,8 @@ qemu_args=(
     # Give the guest 1 GiB of RAM. This is enough for the Ubuntu cloud image used by this demo.
     -m "1024"
 
-    # Give the guest one virtual CPU. More CPUs are possible, but one keeps the demo output simple.
-    -smp "1"
+    # Give the guest several virtual CPUs so early boot and cloud-init parallelize.
+    -smp "4"
 
     # Do not open a graphical display window. This VM is controlled entirely through its serial console.
     -display none
@@ -97,16 +97,9 @@ qemu_args=(
     # id=qemu_host gives this filesystem device an internal QEMU name.
     -virtfs "local,path=${guest_share_dir},mount_tag=qemu_host,security_model=mapped-xattr,id=qemu_host"
 
-    # Ubuntu cloud images start systemd-networkd-wait-online during boot. Without a NIC, this stock image waits there
-    # before cloud-init reaches our hello-world command. This user-mode NIC is present only to let Ubuntu's
-    # normal boot finish; the demo payload below uses the 9p host share, not the network.
-    # -netdev user creates QEMU's built-in NAT-style network backend on the host side.
-    # id=net0 names that backend so the virtual NIC device can attach to it.
-    -netdev "user,id=net0"
-
-    # virtio-net-pci is the guest-visible network card. netdev=net0 plugs it into the backend above.
-    # romfile= disables the NIC option ROM, which avoids extra network-boot firmware behavior in this tiny demo.
-    -device "virtio-net-pci,netdev=net0,romfile="
+    # No network device: the demo payload comes from the 9p host share, and we power off in cloud-init's
+    # early bootcmd stage before anything would wait on the network. cloud-init network config is disabled
+    # in user-data to match.
 
     # Do not reboot after guest shutdown. When cloud-init powers off Ubuntu, QEMU exits.
     -no-reboot

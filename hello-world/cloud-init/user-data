@@ -1,5 +1,9 @@
 #cloud-config
 hostname: qemu-hello
+# This demo never touches the network (the payload comes from the 9p host share), so tell cloud-init
+# not to configure networking. That skips DHCP and network rendering during the init stage.
+network:
+  config: disabled
 # Everything runs in bootcmd, which executes in cloud-init's early local stage. The later runcmd
 # stage waits on network-online.target and the rest of the boot pipeline, which adds ~8s we don't
 # need for this offline hello-world. Running here, then powering off immediately, is much faster.
