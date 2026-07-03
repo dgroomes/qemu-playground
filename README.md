@@ -33,11 +33,11 @@ re-using the code.
 The subprojects include:
 
 
-### `hello-world/`
+### `boot-from-iso/`
 
-A "hello world" QEMU example that boots a guest VM to print a friendly message.
+Boot a Linux guest VM from an Alpine ISO.
 
-See the README in [hello-world/](hello-world/).
+See the README in [boot-from-iso/](boot-from-iso/).
 
 
 ## Wish List
@@ -45,8 +45,10 @@ See the README in [hello-world/](hello-world/).
 General clean-ups, TODOs and things I wish to implement for this project:
 
 * [x] DONE Scaffold the README
-* [ ] IN PROGRESS Create a "hello world" demo. Bash script to run an Ubuntu VM with qemu and print hello world. I think we need to use cloud init, and I think we need to mount (?) an ISO into it which represents the actual hello world program?
+* [ ] ABANDON (I eventually landed on the simpler interactive boot from ISO example; so this code could be reused elsewhere but overall is low value) Create a "hello world" demo. Bash script to run an Ubuntu VM with qemu and print hello world. I think we need to use cloud init, and I think we need to mount (?) an ISO into it which represents the actual hello world program?
 * [ ] Image baking subproject. I want to learn how to customize an actual VM image. I need this to contrast with "mounting".
+* [ ] IN PROGRESS (At first glance, much better results with Fable 5 than with Opus 4.8; I have to verify it) Boot direct to kernel subproject. This is the way.
+* [x] DONE Interactive VM example. I had assumed that a "run to completion" VM tutorial would be the easy starting point, but I was wrong. The downloading, packaging, bundling, cryptic wiring, and bootstrapping that has to happen to, say, install a "say 'hello' then exit" program in VM is a lot. It's much more approachable to boot into the serial console (w/e that is called) and let the user run a shell command. Which is a more visceral demo anyway. Perfect. 
 
 
 ## Reference
