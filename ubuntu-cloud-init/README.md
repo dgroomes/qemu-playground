@@ -1,4 +1,11 @@
-# hello-world
+# ubuntu-cloud-init
+
+---
+**ABANDONED**
+
+This was my first path down getting up and running with QEMU. I made some assumptions that led me to the demo and notes in this Ubuntu cloud-init subproject. I'm going to keep this subproject for posterity in the short term, but ultimately I was able to reduce it down to the bare concepts and reduced demos that I was really after, which are represented in the other subprojects (boot-from-iso, direct-kernel-boot). I might further extract some concepts from this Ubuntu cloud-init project into other more base primitive subprojects in the QEMU playground. I don't think I care to have a reference of Ubuntu cloud-init, but anything's possible.
+
+---
 
 A "hello world" QEMU example that boots a guest VM to print a friendly message.
 
