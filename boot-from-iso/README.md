@@ -17,12 +17,7 @@ This is about as simple and relatable as I could make a QEMU example project for
 
 ## Instructions
 
-1. Assumptions
-   - I used macOS on Apple Silicon
-   - I installed QEMU from Homebrew with the following command.
-   - ```shell
-     brew install qemu
-     ```
+1. Assumptions: macOS, Apple Silicon, Homebrew-installed QEMU
 2. Download an Alpine Linux ISO (~90 MB)
    - ```shell
      curl -LO https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-virt-3.24.1-aarch64.iso
@@ -57,6 +52,14 @@ This is about as simple and relatable as I could make a QEMU example project for
    - ```shell
      poweroff
      ```
+   - Tip: If you ever need to bail out of QEMU directly, press `Ctrl-A` then `x`.
+
+
+## Wish List
+
+General clean-ups, TODOs and things I wish to implement for this project:
+
+- [ ] Consider replacing the `-bios` flag with the pflash wiring because the "bios" naming is misleading. There is no BIOS. On the other hand, the `-bios` flag is going to be much terser.
 
 
 ## Reference
