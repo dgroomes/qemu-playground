@@ -7,7 +7,7 @@ This is still a useful reference, but heavily discount it and I might repurpose 
 
 One thing that's a little annoying is that QEMU supports vmnet but QEMU distributed via Homebrew isn't codesigned by an
 Apple Developer account, and so you can't use the network entitlement without using root. By contast, Tart and UTM
-distribute their binaries signed. I'd way prefer to use vment than the now legacy 9P or the out-of-the-way gVisor thing
+distribute their binaries signed. I'd way prefer to use vmnet than the old/default slirp thing or the out-of-the-way gVisor thing
 apparently I could do (similar to what Lima is doing?). I dont' really get how it all works. Also it hallucinated that
 passt is read to go on macOS, it is not.
 
@@ -109,13 +109,6 @@ General clean-ups, TODOs and things I wish to implement for this project:
   guest gets a real, directly-addressable IP on a macOS-managed subnet — no `hostfwd` holes needed. The cost: vmnet
   requires root (or an Apple entitlement only granted to signed apps like UTM), so it means `sudo qemu-system-...`.
   Modes: `vmnet-shared` (NAT, host can reach guest), `vmnet-host` (host-only), `vmnet-bridged` (guest joins the LAN).
-- [ ] Try `passt`, the modern successor to slirp from the podman/KubeVirt world. Same no-root NAT topology, but the
-  network stack runs in a separate sandboxed process (slirp parses guest packets inside QEMU, and has the CVE history
-  to show for it) and forwards at layer 4, which is faster. QEMU 11 has a native `-netdev passt` backend and Homebrew
-  now packages passt for macOS.
-- [ ] Non-options on macOS, noted for completeness: `tap` (the classic Linux answer, standard on Linux hosts via
-  bridge + vhost-net, but needs a kernel extension on macOS and kexts are deprecated), `vde` (2000s-era virtual
-  switch), `socket`/`stream`/`dgram` (point-to-point plumbing for VM-to-VM wiring, not host connectivity).
 
 
 ## Reference
