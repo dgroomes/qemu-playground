@@ -31,8 +31,16 @@ every process on your Mac can open network connections without owning a network 
 exist by default (the guest is unreachable, like a machine behind a home router), so we punch a hole with a `hostfwd`
 port-forwarding rule.
 
-This demo boots the same interactive Alpine ISO as the `boot-from-iso/` subproject with one network device attached,
-proves outbound connectivity with `wget`, and then serves a web page from the guest to your Mac's browser.
+This demo boots the same interactive live Alpine system as the `boot-from-iso/` subproject with one network device
+attached, proves outbound connectivity with `wget`, and then serves a web page from the guest to your Mac's browser.
+
+One difference from `boot-from-iso/`: we boot the kernel directly (the trick from `direct-kernel-boot/`) instead of
+going through UEFI and GRUB, which cuts boot-to-login from ~7.5 seconds to under 1 second. The kernel and initramfs
+are only the first few megabytes of the OS, though — the live system's root filesystem (the squashfs of kernel
+modules, the packages, the init system) still lives on the ISO. So we extract those two boot files *from the ISO
+itself* and keep the ISO attached as a CD; the initramfs then finds the Alpine media on the virtual CD exactly as it
+would have after a GRUB boot. (The `direct-kernel-boot/` subproject never needed this because its demo never leaves
+the initramfs.)
 
 
 ## Instructions
@@ -42,25 +50,37 @@ proves outbound connectivity with `wget`, and then serves a web page from the gu
    - ```shell
      curl -LO https://dl-cdn.alpinelinux.org/alpine/v3.24/releases/aarch64/alpine-virt-3.24.1-aarch64.iso
      ```
-3. Boot the virtual machine
+3. Extract the kernel and initramfs from the ISO
+   - ```shell
+     bsdtar -xf alpine-virt-3.24.1-aarch64.iso boot/vmlinuz-virt boot/initramfs-virt
+     ```
+   - macOS's built-in `bsdtar` reads ISO9660 directly. The two files land in `./boot/`.
+4. Boot the virtual machine
    - ```shell
      qemu-system-aarch64 \
        -machine virt,accel=hvf \
        -cpu host \
        -m 512 \
-       -bios "/opt/homebrew/share/qemu/edk2-aarch64-code.fd" \
+       -kernel boot/vmlinuz-virt \
+       -initrd boot/initramfs-virt \
+       -append "modules=loop,squashfs quiet console=ttyAMA0" \
        -cdrom alpine-virt-3.24.1-aarch64.iso \
        -netdev user,id=net0,hostfwd=tcp::8080-:8000 \
        -device virtio-net-pci,netdev=net0 \
        -nographic
      ```
-   - The base flags are explained in `boot-from-iso/`. The two new ones come as a pair: a *backend* (host-side
-     plumbing) and a *device* (the virtual hardware the guest sees), joined by the `net0` id.
+   - The base flags are explained in `boot-from-iso/` and `direct-kernel-boot/`.
+   - `-kernel` / `-initrd` boot the ISO's own kernel directly, skipping UEFI and GRUB. `-append` is the kernel
+     command line that GRUB would have passed (it's in `boot/grub/grub.cfg` on the ISO), minus the storage drivers a
+     virtio VM doesn't need. `-cdrom` still attaches the ISO: that's where the initramfs finds the rest of the live
+     system.
+   - The two networking flags come as a pair: a *backend* (host-side plumbing) and a *device* (the virtual hardware
+     the guest sees), joined by the `net0` id.
    - `-netdev user,id=net0,...` is the backend: QEMU's user-mode network. `hostfwd=tcp::8080-:8000` adds the one
      inbound rule: connections to port 8080 on the Mac get forwarded to port 8000 in the guest.
    - `-device virtio-net-pci,netdev=net0` is the device: a paravirtualized network card wired to that backend. The
      guest sees it as an ordinary `eth0`.
-4. Log in as `root` (no password), then bring up the network
+5. Log in as `root` (no password), then bring up the network
    - ```shell
      ifconfig eth0 up && udhcpc -i eth0
      ```
@@ -70,13 +90,13 @@ proves outbound connectivity with `wget`, and then serves a web page from the gu
      ```
    - These addresses are QEMU conventions: the guest is always `10.0.2.15`, the gateway (QEMU itself) is `10.0.2.2`,
      and DNS is at `10.0.2.3`. The DHCP lease configures all three.
-5. Prove outbound connectivity
+6. Prove outbound connectivity
    - ```shell
      wget -q -O - https://www.wikipedia.org
      ```
    - HTML from the real internet, fetched from inside the guest. (Tip: `ping` is a bad connectivity test here — ICMP
      doesn't travel well through user-mode networking. Use a TCP tool like `wget`.)
-6. Serve a web page from the guest
+7. Serve a web page from the guest
    - The `httpd` applet isn't in Alpine's default BusyBox build, so install the `busybox-extras` package. This is also
      a nice second proof of outbound networking.
    - ```shell
@@ -85,7 +105,7 @@ proves outbound connectivity with `wget`, and then serves a web page from the gu
      echo '<h1>hi from the guest VM</h1>' > /tmp/www/index.html
      httpd -p 8000 -h /tmp/www
      ```
-7. Browse from your Mac
+8. Browse from your Mac
    - Open <http://localhost:8080> in your browser, or in another terminal:
    - ```shell
      curl http://localhost:8080
@@ -93,7 +113,7 @@ proves outbound connectivity with `wget`, and then serves a web page from the gu
    - Your Mac connected to `localhost:8080`, QEMU matched the `hostfwd` rule and relayed the connection to
      `10.0.2.15:8000` in the guest, and the guest's web server answered. This is the "develop in the guest, browse
      from the host" loop.
-8. Shut the machine down
+9. Shut the machine down
    - ```shell
      poweroff
      ```
